@@ -1,0 +1,1 @@
+@reboot cd /var/www/html && php console.php queue:work >> /var/log/saas-security-worker.log 2>&1

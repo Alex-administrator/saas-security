@@ -1,0 +1,24 @@
+# Секреты — никогда не коммитить
+.env
+
+# Данные хранилища
+storage/logs/
+storage/cache/
+storage/uploads/
+storage/queue/
+
+# Docker volumes
+db_data/
+
+# Зависимости (если появится composer)
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

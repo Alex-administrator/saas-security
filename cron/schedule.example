@@ -1,0 +1,2 @@
+* * * * * cd /var/www/html && php console.php schedule:run >> /var/log/saas-security-scheduler.log 2>&1
+
