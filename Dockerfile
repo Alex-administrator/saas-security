@@ -11,9 +11,8 @@ COPY . /var/www/html
 
 RUN chmod +x /usr/local/bin/app-entrypoint \
     && mkdir -p /var/www/html/storage/cache/data /var/www/html/storage/cache/views /var/www/html/storage/logs /var/www/html/storage/queue /var/www/html/storage/uploads \
-    && chown -R www-data:www-data /var/www/html/storage
-
-USER www-data
+    && chown -R www-data:www-data /var/www/html/storage \
+    && printf '[www]\nclear_env = no\n' > /usr/local/etc/php-fpm.d/zz-app-env.conf
 
 ENTRYPOINT ["app-entrypoint"]
 CMD ["php-fpm"]
