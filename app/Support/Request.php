@@ -121,6 +121,11 @@ final class Request
 
     public function ip(): string
     {
+        $realIp = $this->server['HTTP_X_REAL_IP'] ?? null;
+        if (is_string($realIp) && $realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP)) {
+            return $realIp;
+        }
+
         return (string) ($this->server['REMOTE_ADDR'] ?? '127.0.0.1');
     }
 

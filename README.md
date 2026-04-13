@@ -146,6 +146,103 @@ docker compose down -v
 - `db` — MySQL 8.4
 - `worker` — воркер очереди задач
 
+## HTTPS через Nginx + Let's Encrypt
+
+Внутренний стек работает по HTTP. Для HTTPS нужен внешний Nginx как обратный прокси.
+
+### 1. Установка Nginx и Certbot
+
+```bash
+apt install -y nginx certbot python3-certbot-nginx
+```
+
+### 2. Конфигурация Nginx
+
+Создай файл `/etc/nginx/sites-available/saas-security`:
+
+```nginx
+server {
+    listen 80;
+    server_name твой-домен.ru;
+
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+server {
+    listen 443 ssl;
+    server_name твой-домен.ru;
+
+    ssl_certificate     /etc/letsencrypt/live/твой-домен.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/твой-домен.ru/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    location / {
+        proxy_pass         http://127.0.0.1:8080;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto https;
+    }
+}
+```
+
+```bash
+ln -s /etc/nginx/sites-available/saas-security /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+```
+
+### 3. Получение сертификата
+
+```bash
+certbot --nginx -d твой-домен.ru
+```
+
+Certbot сам вставит пути к сертификату в конфиг.
+
+### 4. Обновить `.env`
+
+```env
+APP_URL=https://твой-домен.ru
+SESSION_SECURE_COOKIE=true
+```
+
+Применить:
+
+```bash
+docker compose up -d --force-recreate app
+```
+
+### 5. Автообновление сертификата
+
+Certbot добавляет таймер systemd автоматически. Проверить:
+
+```bash
+systemctl status certbot.timer
+```
+
+---
+
+## Тесты
+
+Запустить все тесты (стек должен быть запущен):
+
+```bash
+bash tests/run-tests.sh
+```
+
+Или отдельный тест:
+
+```bash
+docker compose exec app php tests/Unit/ValidatorTest.php
+docker compose exec app php tests/Unit/PasswordStrengthTest.php
+docker compose exec app php tests/Unit/RateLimiterTest.php
+docker compose exec app php tests/Integration/LoginCsrfTest.php
+```
+
+---
+
 ## Примечания
 
 - Если `APP_URL` использует `https://`, TLS должен терминироваться внешним обратным прокси (Traefik, Caddy, Nginx). Внутренний стек работает по HTTP на указанном порту.
